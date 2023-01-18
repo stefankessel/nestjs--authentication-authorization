@@ -6,7 +6,7 @@ import {
 import { UsersService } from 'src/users/users.service';
 import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import * as bycrypt from 'bcryptjs';
-import { User, UserReturnType } from 'src/users/user.entity';
+import { User } from 'src/users/user.entity';
 import { UserLoginDTO } from './dto/user-login.dto';
 import { JwtService } from '@nestjs/jwt/dist';
 
@@ -17,51 +17,41 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(user: AuthCredentialsDto): Promise<UserReturnType> {
+  async register(user: AuthCredentialsDto): Promise<void> {
     const { password_confirm, ...data } = user;
     // check password_confirm
-    if (user.password_confirm !== password_confirm) {
+    if (user.password !== password_confirm) {
       throw new BadRequestException('Password does not match');
     }
     // encrypt password
     const salt = await bycrypt.genSalt();
     const hashedPassword = await bycrypt.hash(data.password, salt);
     // save in DB
-    const newUser = await this.userService.saveUser({
+    await this.userService.saveUser({
       ...data,
       password: hashedPassword,
       isAmbassador: false,
     });
-    //return sanitized User Object
-    const { password, ...returnData } = newUser;
-
-    return returnData;
   }
 
   async validate(loginData: UserLoginDTO): Promise<User> {
+    const { password, username } = loginData;
     // check if user exists
-    const user = await this.userService.findOneByEmail(loginData.email);
+    const user = await this.userService.findOneByUsername(username);
 
-    if (!user) {
+    // compare password
+    if (user && (await bycrypt.compare(password, user.password))) {
+      return user;
+    } else {
       throw new UnauthorizedException('unauthorized');
     }
-    // compare password
-
-    const isPasswordCompared = await bycrypt.compare(
-      loginData.password,
-      user.password,
-    );
-    if (!isPasswordCompared) {
-      throw new BadRequestException('unauthorized');
-    }
-
-    return user;
   }
 
   async login(loginData: UserLoginDTO) {
     const user = await this.validate(loginData);
+    const { username } = user;
 
-    const payload = { username: user.username, sub: user.id };
+    const payload = { username };
     const accessToken = this.jwtService.sign(payload);
 
     return accessToken;

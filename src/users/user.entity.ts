@@ -17,5 +17,3 @@ export class User {
   @Column({ default: true })
   isAmbassador: boolean;
 }
-
-export type UserReturnType = Omit<User, 'password'>;
