@@ -13,7 +13,7 @@ export class UsersService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  findOneByUsername(username: string): Promise<User | undefined> {
+  findOneBy(username: string): Promise<User | undefined> {
     return this.userRepository.findOneBy({ username });
   }
 

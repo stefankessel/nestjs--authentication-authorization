@@ -37,7 +37,7 @@ export class AuthService {
   async validate(loginData: UserLoginDTO): Promise<User> {
     const { password, username } = loginData;
     // check if user exists
-    const user = await this.userService.findOneByUsername(username);
+    const user = await this.userService.findOneBy(username);
 
     // compare password
     if (user && (await bycrypt.compare(password, user.password))) {
